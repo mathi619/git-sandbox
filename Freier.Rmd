@@ -1,0 +1,109 @@
+---
+title: "Final Presentation"
+author: "Mathias Freier"
+date: "15 May 2021"
+output:
+  html_document:
+    df_print: paged
+always_allow_html: yes
+bibliography: Research Design.bib
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = FALSE)
+```
+# Research design for the International Conference of Political Science 
+
+### Research question
+
+In 2014, the AfD began a series of electoral successes in East Germany, both at state and federal level, which continues to today. In most cases, they were able to attract twice as many votes in Eastern Germany as in Western Germany [@Rosel2018]. The German electoral research is therefore confronted with the challenge of analyzing and explaining the factors for this asymmetrical voting behavior. While some political scientists see the explanation for this success in the socialization and education of the citizens from the former GDR, which led to a different understanding of civic culture and a low level of social trust that was particularly evident for the AfD during the refugee crisis [@Rosel2018]. Other scholars argue that it is in particular the social and economic disparities between East and West cheered through a strong structural change away from industry, which is responsible for the AfD's electoral success in East Germany [@Schneider2020]. Which factors are responsible for the voting behavior of citizens in the new federal states?
+
+
+### Corresponding Diagram
+
+```{r echo=FALSE}
+library(DiagrammeR)
+grViz("digraph {
+        graph []
+        node [shape = plaintext]
+          A [label = 'Inner German border']
+          D [label = 'Socialization in East Germany']
+          Y [label = 'Vote share of the radical right party AfD']
+          C [label = 'Structural change in the local economic 
+  and infrastructural development
+']
+        edge []
+          A->D
+          C->Y
+          D->Y
+      { rank = same; D; Y }
+      { rank = same; A; C }
+  }")
+```
+
+### Hypotheses
+
+A basic assumption is that in constituencies and municipalities from the former East Germany there are indeed significantly more votes for the AfD than in West Germany. Concurrently therefore, the hypothesis is represented that as higher the proportion of citizens who were socialized in the former GDR in the respective constituencies and communities are, as higher the proportion of votes for the AfD. The East German citizens act systematically differently than citizens with a West German socialization background [@Franz2018]. Social, economic and infrastructural disparities between East and West Germany in connection with an anti-industrial structural change are a disruptive factor that influences the decision to vote in favor of the AfD additionally and especially not regionally equivalent provided by the Urban-Rural Cleavage [@Jackle2018].
+
+### Data & methods
+
+To answer the research question regarding to an actual causal effect, we try to work with a fuzzy regression discontinuity analysis in order to be able to control for the effect of some disparities and the structural change. The German border is an exogenous historical treatment mechanism that determined whether a citizen was socialized in East or West Germany until reunification. The relative proximity to the border, as an geographical instrument, should therefore not only lead to a discontinuity in terms of the AfD's vote share whether the mixing of East and West German citizens in the last three decades, it also should keep the effect of the structural change as well as parts of social and infrastructural disparities on both sides of the border constant [@Jackle2018]. While we use the voting shares for the AfD in the constituencies and municipalities along the border of the last federal and state elections from the official information centers of the states and the federal government as well as the Gesis database and derive the relative proximity to the border with the help of geographical information systems [@GESIS2020], we can only estimate the proportions of East and West German citizens along the border using general demographic data since 1990, e.g. regarding to migration movements as well as births and mortality rates [@Destatis2020].
+
+### Expected results
+
+The analysis focus on constituencies and municipalities in a radius of 35 kilometers from the border as threshold, assuming that structural change and disparities in this radius are on average identical on both sides of the border. If the position below the border is coded as a dummy variable, a discontinuity of approx. 40.3 % is expected with a view to the proportion of East Germans. In the AfD's share of the vote between East and West, there is a difference of approx. 21.6 %. However, since this effect cannot be viewed as a causal factor due to the intermingling of citizens in the last 3 decades, we allow a 2SLS model to be calculated. The model shows an adjusted effect of 18.13 which is around 3.5 percent smaller than in the reduced model and should represent the causal effect with regard to the East German origin.
+
+```{r include=FALSE}
+library(tidyverse)
+```
+
+```{r echo=FALSE}
+# Simulating the data
+set.seed(130495)
+Wahlkreise_Ost <- tibble(AfD = rnorm(n = 300, mean = 30, sd = 3),
+                          KM = rnorm(n = 300, mean = 20, sd = 5),
+                          OstWest = rnorm(n = 300, mean = 70, sd = 5)
+)
+
+Wahlkreise_West <- tibble (AfD = rnorm(n = 300, mean = 10, sd = 2),
+                             KM = rnorm(n = 300, mean = -20, sd = 5),
+                           OstWest = rnorm(n = 300, mean = 30, sd = 5)
+)
+
+data_gesamt <- rbind (Wahlkreise_Ost, Wahlkreise_West)
+data_gesamt$KM_dummy = ifelse (data_gesamt$KM > 0,1,0)
+
+# Figure 1
+ggplot() +
+  geom_point(data = data_gesamt, aes(x = KM, y = OstWest)) +
+  geom_smooth(data = data_gesamt %>%  filter(KM < 0), 
+              aes(x = KM, y = OstWest),
+              method = 'lm', 
+              formula = y ~ poly(x, 1)) +
+  geom_smooth(data = data_gesamt %>%  filter(KM > 0), 
+              aes(x = KM, y = OstWest),
+              method = 'lm', 
+              formula = y ~ poly(x, 1)) +
+  xlab("Kilometers along the border") +
+  ylab("Share of East Germans") +
+  
+  geom_vline( xintercept = 5 , linetype = 2 , size = .7 ) +
+  geom_vline( xintercept = -5 , linetype = 2 , size = .7 )
+
+# Figure 2
+ggplot() +
+  geom_point(data = data_gesamt, aes(x = KM, y = AfD)) +
+  geom_smooth(data = data_gesamt %>%  filter(KM < 0), 
+              aes(x = KM, y = AfD),
+              method = 'lm', 
+              formula = y ~ poly(x, 1)) +
+  geom_smooth(data = data_gesamt %>%  filter(KM > 0), 
+              aes(x = KM, y = AfD),
+              method = 'lm', 
+              formula = y ~ poly(x, 1)) +
+  xlab("Kilometers along the border") +
+  ylab("AfD's vote share") +
+
+  geom_vline( xintercept = 5 , linetype = 2 , size = .7 ) +
+  geom_vline( xintercept = -5 , linetype = 2 , size = .7 )
+```
